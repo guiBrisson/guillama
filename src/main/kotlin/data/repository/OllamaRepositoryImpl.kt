@@ -21,7 +21,7 @@ class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
         val request = Request.Builder().url("$BASE_URL/tags").build()
         return@withContext baseCall(request) {
             val models = json.decodeFromString<Models>(it)
-            logger.info(models.models.toString())
+            logger.info("fetched models: " + models.models.toString())
             models.models
         }
     }
