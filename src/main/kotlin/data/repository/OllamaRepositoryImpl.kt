@@ -1,9 +1,9 @@
 package data.repository
 
-import domain.model.Model
-import domain.model.ModelLibrary
-import domain.model.Models
-import domain.model.ResultOf
+import model.Model
+import model.ModelLibrary
+import model.Models
+import model.ResultOf
 import domain.repository.OllamaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow

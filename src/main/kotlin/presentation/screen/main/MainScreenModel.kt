@@ -2,8 +2,8 @@ package presentation.screen.main
 
 import cafe.adriel.voyager.core.model.ScreenModel
 import cafe.adriel.voyager.core.model.screenModelScope
-import domain.model.Model
-import domain.model.ResultOf
+import model.Model
+import model.ResultOf
 import domain.repository.OllamaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

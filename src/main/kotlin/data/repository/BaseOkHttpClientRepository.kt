@@ -1,6 +1,6 @@
 package data.repository
 
-import domain.model.ResultOf
+import model.ResultOf
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import java.io.IOException
