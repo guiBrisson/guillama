@@ -22,5 +22,11 @@ enum class ModelLibrary(val modelName: String, val size: Float, val parameters: 
     CODE_LLAMA(modelName = "codellama", size = 3.8f, parameters = "7B"),
     LLAMA2_UNCENSORED(modelName = "llama2-uncensored", size = 3.8f, parameters = "7B"),
     ORCA_MINI(modelName = "orca-mini", size = 1.9f, parameters = "3B"),
-    VICUNA(modelName = "vicuna", size = 3.8f, parameters = "7B"),
+    VICUNA(modelName = "vicuna", size = 3.8f, parameters = "7B");
+
+    companion object {
+        fun fromModel(model: Model): ModelLibrary? {
+            return enumValues<ModelLibrary>().find { model.name.contains(it.name, ignoreCase = true) }
+        }
+    }
 }

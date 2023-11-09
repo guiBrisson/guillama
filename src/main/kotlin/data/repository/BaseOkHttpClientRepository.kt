@@ -10,7 +10,7 @@ import kotlin.coroutines.suspendCoroutine
 open class BaseOkHttpClientRepository {
     private val client = OkHttpClient()
 
-    suspend fun <T> baseCall(request: Request, action: (jsonResponse: String) -> T): ResultOf<T> =
+    suspend fun <T> baseCall(request: Request, onSuccess: (jsonResponse: String?) -> T): ResultOf<T> =
         suspendCoroutine { cont ->
             client.newCall(request).enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
@@ -27,7 +27,7 @@ open class BaseOkHttpClientRepository {
                         println("$name: $value")
                     }
 
-                    cont.resume(ResultOf.Success(action(response.body!!.string())))
+                    cont.resume(ResultOf.Success(onSuccess(response.body!!.string())))
                 }
             })
         }

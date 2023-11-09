@@ -1,25 +1,20 @@
 package presentation.screen.main
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.koin.getScreenModel
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
+import model.ModelLibrary
 import presentation.designsystem.component.ThemeSwitch
 import presentation.screen.chat.ChatScreen
+import presentation.screen.main.components.ModelSelect
 
 class MainScreen(
     private val modifier: Modifier = Modifier,
@@ -29,6 +24,7 @@ class MainScreen(
     override fun Content() {
         val screenModel = getScreenModel<MainScreenModel>()
         val modelListUiState by screenModel.modelListUiState.collectAsState()
+        val downloadModelUiState by screenModel.downloadModelUiState.collectAsState()
 
         LaunchedEffect(modelListUiState) {
             if (modelListUiState == ModelListUiState.Init) {
@@ -36,39 +32,66 @@ class MainScreen(
             }
         }
 
-        Screen(modifier = modifier, modelListUiState = modelListUiState)
+        Screen(
+            modifier = modifier,
+            modelListUiState = modelListUiState,
+            downloadModelUiState = downloadModelUiState,
+            onDownloadModel = screenModel::downloadModel,
+            onRemoveModel = screenModel::removeModel,
+        )
     }
 
     @Composable
     private fun Screen(
         modifier: Modifier = Modifier,
         modelListUiState: ModelListUiState,
+        downloadModelUiState: DownloadModelUiState,
+        onDownloadModel: (model: ModelLibrary) -> Unit,
+        onRemoveModel: (model: ModelLibrary) -> Unit,
     ) {
         Navigator(ChatScreen()) {
             Scaffold(
                 modifier = modifier,
-                topBar = { AppTopBar(modelListUiState = modelListUiState) },
+                topBar = {
+                    AppTopBar(
+                        modelListUiState = modelListUiState,
+                        downloadModelUiState = downloadModelUiState,
+                        onDownloadModel = onDownloadModel,
+                        onRemoveModel = onRemoveModel,
+                    )
+                },
                 content = { CurrentScreen() },
             )
         }
     }
 
     @Composable
-    private fun AppTopBar(modifier: Modifier = Modifier, modelListUiState: ModelListUiState) {
-        Row(modifier = modifier.fillMaxWidth().height(40.dp).background(MaterialTheme.colors.surface)) {
+    private fun AppTopBar(
+        modifier: Modifier = Modifier,
+        modelListUiState: ModelListUiState,
+        downloadModelUiState: DownloadModelUiState,
+        onDownloadModel: (model: ModelLibrary) -> Unit,
+        onRemoveModel: (model: ModelLibrary) -> Unit,
+    ) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(40.dp)
+                .background(MaterialTheme.colors.surface)
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+        ) {
+            ThemeSwitch(modifier = Modifier.padding(end = 8.dp).size(32.dp))
 
-            ThemeSwitch()
+            ModelSelect(
+                modifier = Modifier.height(32.dp),
+                modelListUiState = modelListUiState,
+                onDownloadModel = onDownloadModel,
+                downloadModelUiState = downloadModelUiState,
+                onRemoveModel = onRemoveModel,
+            )
 
-            when(modelListUiState) {
-                ModelListUiState.Loading -> CircularProgressIndicator()
-                is ModelListUiState.Success -> {
-                    for (model in modelListUiState.models) {
-                        Text(model.name)
-                    }
-                }
-                is ModelListUiState.Error -> Text(modelListUiState.exception.toString())
-                else -> Unit
-            }
         }
     }
 }

@@ -8,4 +8,5 @@ import kotlinx.coroutines.flow.Flow
 interface OllamaRepository {
     suspend fun listModels(): ResultOf<List<Model>>
     fun pullModel(model: ModelLibrary): Flow<ResultOf<Unit>>
+    suspend fun removeModel(model: ModelLibrary): ResultOf<Unit>
 }

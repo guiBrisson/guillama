@@ -11,4 +11,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "guillhama"
+rootProject.name = "guillama"

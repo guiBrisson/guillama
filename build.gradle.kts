@@ -17,6 +17,7 @@ repositories {
 
 dependencies {
     implementation(compose.desktop.currentOs)
+    api(compose.materialIconsExtended)
 
     // Network
     implementation(platform("com.squareup.okhttp3:okhttp-bom:4.11.0"))
