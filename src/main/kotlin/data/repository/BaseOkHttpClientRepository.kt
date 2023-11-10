@@ -23,10 +23,6 @@ open class BaseOkHttpClientRepository {
                         cont.resume(ResultOf.Failure(IOException("Unexpected code $response")))
                     }
 
-                    for ((name, value) in response.headers) {
-                        println("$name: $value")
-                    }
-
                     cont.resume(ResultOf.Success(onSuccess(response.body!!.string())))
                 }
             })

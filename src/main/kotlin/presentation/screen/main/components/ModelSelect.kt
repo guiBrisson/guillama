@@ -6,8 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +21,7 @@ import model.ModelLibrary
 import presentation.designsystem.component.TopBarButton
 import presentation.screen.main.DownloadModelUiState
 import presentation.screen.main.ModelListUiState
+import presentation.utils.loadSvgPainter
 
 object SelectedModel {
     var value by mutableStateOf<ModelLibrary?>(null)
@@ -32,6 +32,7 @@ fun ModelSelect(
     modifier: Modifier = Modifier,
     modelListUiState: ModelListUiState,
     downloadModelUiState: DownloadModelUiState,
+    isServerRunning: Boolean,
     onDownloadModel: (model: ModelLibrary) -> Unit,
     onRemoveModel: (model: ModelLibrary) -> Unit,
 ) {
@@ -41,10 +42,13 @@ fun ModelSelect(
     var showDownloadingDialog by remember { mutableStateOf(false) }
     val closeDownloadingDialog = { showDownloadingDialog = false }
 
+    var showServerDisconnectedDialog by remember { mutableStateOf(false) }
+    val closeServerDisconnectedDialog = { showServerDisconnectedDialog = false }
+
     var selectModelText by remember { mutableStateOf("Select a model") }
     val ableToOpenModelList = modelListUiState.isSuccess() && !downloadModelUiState.isDownloading()
 
-    val arrowRotation: Float by animateFloatAsState(if (showModelListDialog || showDownloadingDialog) 180f else 0f)
+    val arrowRotation: Float by animateFloatAsState(if (showModelListDialog || showDownloadingDialog) 0f else 180f)
 
     LaunchedEffect(SelectedModel.value) {
         selectModelText = if (SelectedModel.value?.modelName.isNullOrEmpty()) {
@@ -57,11 +61,9 @@ fun ModelSelect(
     TopBarButton(
         modifier = Modifier.clip(RoundedCornerShape(4.dp)),
         onClick = {
-            if (ableToOpenModelList) {
-                showModelListDialog = true
-            } else {
-                showDownloadingDialog = true
-            }
+            if (!isServerRunning) showServerDisconnectedDialog = true
+            else if (ableToOpenModelList) showModelListDialog = true
+            else showDownloadingDialog = true
         },
     ) {
         Row(
@@ -71,14 +73,20 @@ fun ModelSelect(
         ) {
             Text(text = selectModelText, fontWeight = FontWeight.Medium, fontSize = 14.sp)
 
-            if (downloadModelUiState.isDownloading()) {
+            if (!isServerRunning) {
+                Icon(
+                    modifier = Modifier.size(16.dp),
+                    painter = loadSvgPainter("icons/ic_warning.svg"),
+                    contentDescription = null,
+                )
+            } else if (downloadModelUiState.isDownloading()) {
                 Icon(
                     modifier = Modifier.size(16.dp),
                     imageVector = Icons.Default.Download,
                     contentDescription = null,
                     tint = MaterialTheme.colors.primary,
                 )
-            } else if (modelListUiState.isLoading() ) {
+            } else if (modelListUiState.isLoading()) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
                     strokeWidth = 4.dp,
@@ -93,20 +101,25 @@ fun ModelSelect(
             }
         }
 
-        if (ableToOpenModelList) {
+        if (!isServerRunning) {
+            DisconnectedServerDialog(
+                showDialog = showServerDisconnectedDialog,
+                onCloseDialog = closeServerDisconnectedDialog,
+            )
+        } else if (ableToOpenModelList) {
             ModelSelectDialog(
-                showModelListDialog,
-                closeModelListDialog,
-                modelListUiState as ModelListUiState.Success,
-                onDownloadModel,
-                onRemoveModel
+                showDialog = showModelListDialog,
+                onCloseDialog = closeModelListDialog,
+                modelListUiState = modelListUiState as ModelListUiState.Success,
+                onDownloadModel = onDownloadModel,
+                onRemoveModel = onRemoveModel,
             )
         } else {
             SelectedModel.value?.let { model ->
                 DownloadingModelDialog(
-                    showDownloadingDialog,
-                    closeDownloadingDialog,
-                    model,
+                    showDialog = showDownloadingDialog,
+                    onCloseDialog = closeDownloadingDialog,
+                    model = model,
                 )
             }
         }
@@ -117,16 +130,17 @@ fun ModelSelect(
 
 @Composable
 private fun ModelSelectDialog(
+    modifier: Modifier = Modifier,
     showDialog: Boolean,
-    closeDialog: () -> Unit,
+    onCloseDialog: () -> Unit,
     modelListUiState: ModelListUiState.Success,
     onDownloadModel: (model: ModelLibrary) -> Unit,
     onRemoveModel: (model: ModelLibrary) -> Unit
 ) {
     DropdownMenu(
-        modifier = Modifier.background(MaterialTheme.colors.surface),
+        modifier = modifier.background(MaterialTheme.colors.surface),
         expanded = showDialog,
-        onDismissRequest = { closeDialog() },
+        onDismissRequest = { onCloseDialog() },
     ) {
         for (model in enumValues<ModelLibrary>()) {
             val m = modelListUiState.models.map { it.name }.find { it.contains(model.modelName, true) }
@@ -136,7 +150,7 @@ private fun ModelSelectDialog(
                 DropdownMenuItem(
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        closeDialog()
+                        onCloseDialog()
                         if (!isDownloaded) onDownloadModel(model)
                         SelectedModel.value = model
                     }
@@ -192,18 +206,34 @@ private fun ModelSelectDialog(
 
 @Composable
 private fun DownloadingModelDialog(
+    modifier: Modifier = Modifier,
     showDialog: Boolean,
-    closeDialog: () -> Unit,
+    onCloseDialog: () -> Unit,
     model: ModelLibrary,
 ) {
     DropdownMenu(
-        modifier = Modifier.background(MaterialTheme.colors.surface).padding(horizontal = 12.dp),
+        modifier = modifier.background(MaterialTheme.colors.surface).padding(horizontal = 12.dp),
         expanded = showDialog,
-        onDismissRequest = { closeDialog() },
+        onDismissRequest = { onCloseDialog() },
     ) {
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             LinearProgressIndicator(modifier = Modifier.width(200.dp))
             Text("${model.size}gb total", fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+@Composable
+private fun DisconnectedServerDialog(
+    modifier: Modifier = Modifier,
+    showDialog: Boolean,
+    onCloseDialog: () -> Unit,
+) {
+    DropdownMenu(
+        modifier = modifier.background(MaterialTheme.colors.surface).padding(horizontal = 12.dp),
+        expanded = showDialog,
+        onDismissRequest = { onCloseDialog() },
+    ) {
+        Text(text = "Server is not running", fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }

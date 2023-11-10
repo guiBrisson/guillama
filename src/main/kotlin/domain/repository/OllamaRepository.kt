@@ -9,4 +9,7 @@ interface OllamaRepository {
     suspend fun listModels(): ResultOf<List<Model>>
     fun pullModel(model: ModelLibrary): Flow<ResultOf<Unit>>
     suspend fun removeModel(model: ModelLibrary): ResultOf<Unit>
+    suspend fun serverRunning(): ResultOf<Boolean>
+    suspend fun startServer()
+    suspend fun stopServer()
 }

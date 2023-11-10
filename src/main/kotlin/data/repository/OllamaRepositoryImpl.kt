@@ -1,24 +1,26 @@
 package data.repository
 
-import model.Model
-import model.ModelLibrary
-import model.Models
-import model.ResultOf
 import domain.repository.OllamaRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
+import model.Model
+import model.ModelLibrary
+import model.Models
+import model.ResultOf
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.logging.Logger
+import org.slf4j.LoggerFactory
 
 class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
-    private val logger = Logger.getLogger(this::class.java.simpleName)
+    private val logger = LoggerFactory.getLogger(this::class.java.simpleName)
     private val json = Json { ignoreUnknownKeys = true }
+
+    private val serverProcessBuilder = ProcessBuilder("ollama", "serve").inheritIO()
+    private var serverProcess: Process? = null
 
     override suspend fun listModels(): ResultOf<List<Model>> = withContext(Dispatchers.IO) {
         val request = Request.Builder().url("$BASE_URL/tags").build()
@@ -47,7 +49,6 @@ class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
             val process = ProcessBuilder(command).inheritIO().start()
             emit(ResultOf.Loading(null, null))
             process.waitFor()
-            logger.info("command success")
             emit(ResultOf.Success(Unit))
         } catch (e: Exception) {
             e.printStackTrace()
@@ -63,6 +64,43 @@ class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
 
         return@withContext baseCall(request) {
             logger.info("model ${model.modelName} removed")
+        }
+    }
+
+    override suspend fun serverRunning(): ResultOf<Boolean> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val alive = serverProcess?.isAlive ?: false
+            ResultOf.Success(alive)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResultOf.Failure(e)
+        }
+    }
+
+    override suspend fun startServer() {
+        withContext(Dispatchers.IO) {
+            try {
+                logger.info("running ollama server")
+                serverProcess = serverProcessBuilder.start()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    override suspend fun stopServer() {
+        withContext(Dispatchers.IO) {
+            try {
+                serverProcess?.let { process ->
+                    if (process.isAlive) {
+                        process.destroy()
+                        val exitCode = process.waitFor()
+                        logger.info("ollama server process finished with code $exitCode ")
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

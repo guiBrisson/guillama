@@ -35,3 +35,16 @@ sealed interface DownloadModelUiState {
         }
     }
 }
+
+sealed interface ServerUiState {
+    object Idle: ServerUiState
+    object Running: ServerUiState
+    data class Error(val exception: Exception?): ServerUiState
+
+    fun isRunning(): Boolean {
+        return when(this) {
+            Running -> true
+            else -> false
+        }
+    }
+}

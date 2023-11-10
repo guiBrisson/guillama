@@ -12,6 +12,9 @@ import model.ModelLibrary
 class MainScreenModel(
     private val ollamaRepository: OllamaRepository,
 ) : ScreenModel {
+    private val _serverUiState = MutableStateFlow<ServerUiState>(ServerUiState.Idle)
+    val serverUiState: StateFlow<ServerUiState> = _serverUiState.asStateFlow()
+
     private val _modelListUiState = MutableStateFlow<ModelListUiState>(ModelListUiState.Init)
     val modelListUiState: StateFlow<ModelListUiState> = _modelListUiState.asStateFlow()
 
@@ -53,5 +56,41 @@ class MainScreenModel(
                 else -> Unit
             }
         }
+    }
+
+    fun checkServerStatus() {
+        screenModelScope.launch(Dispatchers.IO) {
+            when (val result = ollamaRepository.serverRunning()) {
+                is ResultOf.Success -> {
+                    val uiState = if (result.value) ServerUiState.Running else ServerUiState.Idle
+                    _serverUiState.update { uiState }
+                }
+
+                is ResultOf.Failure -> {
+                    _serverUiState.update { ServerUiState.Error(result.exception) }
+                }
+
+                else -> Unit
+            }
+        }
+    }
+
+    fun startServer() {
+        screenModelScope.launch(Dispatchers.IO) {
+            ollamaRepository.startServer()
+            checkServerStatus()
+        }
+    }
+
+    fun stopServer() {
+        screenModelScope.launch(Dispatchers.IO) {
+            ollamaRepository.stopServer()
+            checkServerStatus()
+        }
+    }
+
+    override fun onDispose() {
+        super.onDispose()
+        stopServer()
     }
 }
