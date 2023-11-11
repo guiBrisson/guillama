@@ -2,24 +2,24 @@ package data.repository
 
 import domain.repository.OllamaRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
-import model.Model
-import model.ModelLibrary
-import model.Models
-import model.ResultOf
+import model.*
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.slf4j.LoggerFactory
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
     private val logger = LoggerFactory.getLogger(this::class.java.simpleName)
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val serverProcessBuilder = ProcessBuilder("ollama", "serve").inheritIO()
+    private val serverProcessBuilder = ProcessBuilder("ollama", "serve")
     private var serverProcess: Process? = null
 
     override suspend fun listModels(): ResultOf<List<Model>> = withContext(Dispatchers.IO) {
@@ -27,7 +27,7 @@ class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
         return@withContext baseCall(request) { jsonResponse ->
             if (jsonResponse != null) {
                 val models = json.decodeFromString<Models>(jsonResponse)
-                logger.info("fetched models: " + models.models.toString())
+                logger.info("fetched ${models.models.size} model(s)")
                 models.models
             } else {
                 emptyList()
@@ -103,4 +103,26 @@ class OllamaRepositoryImpl : OllamaRepository, BaseOkHttpClientRepository() {
             }
         }
     }
+
+    override suspend fun generateCompletion(modelName: String, prompt: String): Flow<ResultOf<Completion>> = flow {
+        val body = """{"model": "$modelName", "prompt": "$prompt"}"""
+        val command = arrayListOf("curl", "-X", "POST", "http://localhost:11434/api/generate", "-d", body)
+
+        logger.info("running command: `\$ ${command.joinToString(" ")}`")
+        emit(ResultOf.Loading(null, null))
+        try {
+            val process = ProcessBuilder(command).redirectOutput(ProcessBuilder.Redirect.PIPE).start()
+
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            var line: String? = reader.readLine()
+            while (line != null) {
+                val completion = json.decodeFromString<Completion>(line)
+                emit(ResultOf.Success(completion))
+                line = reader.readLine()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emit(ResultOf.Failure(e))
+        }
+    }.flowOn(Dispatchers.IO)
 }

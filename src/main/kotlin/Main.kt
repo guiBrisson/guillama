@@ -3,6 +3,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import cafe.adriel.voyager.navigator.Navigator
@@ -26,7 +27,12 @@ fun main() = application {
         modules(dataModule, viewModelModule)
     }
 
-    Window(onCloseRequest = ::exitApplication) {
+    Window(onCloseRequest = ::onExitApplication) {
         App()
     }
+}
+
+fun ApplicationScope.onExitApplication() {
+    //Todo: close running ollama server
+    exitApplication()
 }
