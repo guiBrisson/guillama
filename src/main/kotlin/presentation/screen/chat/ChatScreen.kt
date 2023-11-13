@@ -47,7 +47,7 @@ class ChatScreen(
         var prompt by remember { mutableStateOf("") }
         val clearPrompt = { prompt = "" }
 
-        val chatMaxWidth = 800.dp
+        val chatMaxWidth = 600.dp
 
         Column(
             modifier = modifier.padding(horizontal = 20.dp).fillMaxWidth(),
@@ -61,7 +61,7 @@ class ChatScreen(
             ) {
                 items(chatHistoryUiState.messages) { message ->
                     MessageItem(
-                        modifier = Modifier.widthIn(min = 400.dp, max = 800.dp).padding(vertical = 4.dp),
+                        modifier = Modifier.widthIn(min = 400.dp, max = chatMaxWidth).padding(vertical = 4.dp),
                         message = message,
                     )
                 }

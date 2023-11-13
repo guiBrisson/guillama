@@ -1,5 +1,6 @@
 package presentation.screen.main.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import model.ModelLibrary
-import presentation.designsystem.component.TopBarButton
+import presentation.designsystem.component.MainButton
 import presentation.screen.main.DownloadModelUiState
 import presentation.screen.main.ModelListUiState
 import presentation.utils.loadSvgPainter
@@ -30,6 +31,7 @@ object SelectedModel {
 @Composable
 fun ModelSelect(
     modifier: Modifier = Modifier,
+    isExpanded: Boolean,
     modelListUiState: ModelListUiState,
     downloadModelUiState: DownloadModelUiState,
     isServerRunning: Boolean,
@@ -58,7 +60,7 @@ fun ModelSelect(
         }
     }
 
-    TopBarButton(
+    MainButton(
         modifier = Modifier.clip(RoundedCornerShape(4.dp)),
         onClick = {
             if (!isServerRunning) showServerDisconnectedDialog = true
@@ -71,7 +73,9 @@ fun ModelSelect(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(text = selectModelText, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            AnimatedVisibility(isExpanded) {
+                Text(text = selectModelText, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            }
 
             if (!isServerRunning) {
                 Icon(
@@ -93,11 +97,19 @@ fun ModelSelect(
                     strokeCap = StrokeCap.Round,
                 )
             } else {
-                Icon(
-                    modifier = Modifier.size(16.dp).rotate(arrowRotation),
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                )
+                if (isExpanded) {
+                    Icon(
+                        modifier = Modifier.size(16.dp).rotate(arrowRotation),
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                    )
+                } else {
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        painter = loadSvgPainter("icons/ic_ai_model.svg"),
+                        contentDescription = null,
+                    )
+                }
             }
         }
 
@@ -183,7 +195,7 @@ private fun ModelSelectDialog(
                     contentAlignment = Alignment.Center,
                 ) {
                     if (isDownloaded) {
-                        TopBarButton(
+                        MainButton(
                             modifier = Modifier.size(28.dp),
                             onClick = {
                                 onRemoveModel(model)
